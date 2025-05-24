@@ -35,4 +35,4 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/tunsworthy/FeedSync:latest
+          tags: ghcr.io/tunsworthy/feedsync:latest
