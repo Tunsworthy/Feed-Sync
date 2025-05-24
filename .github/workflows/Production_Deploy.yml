@@ -36,6 +36,7 @@ jobs:
       needs: build-and-push
       environment: Production
       runs-on: [self-hosted,Production]
+
       steps:
         - name: Clone Repo or Update
           run: |
@@ -62,7 +63,7 @@ jobs:
             echo "githubuser=${{ github.actor}}" >> .env
             echo "SHEET_NAME=${{ vars.SHEET_NAME }}" >> .env
             echo "POSTGRES_URI=${{ vars.POSTGRES_URI }}" >> .env 
-            echo "GOOGLE_CREDENTIALS=${{ secrets.GOOGLE_CREDENTIALS }}" >> .env
+            printf "GOOGLE_CREDENTIALS='%s'\n" "${{ secrets.GOOGLE_CREDENTIALS }}" >> .env
         
         - name: Check and Update Only Changed Containers
           run: |
