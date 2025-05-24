@@ -8,7 +8,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source
 COPY app.py .
-COPY .env .
-COPY credentials.json ./credentials.json  # Your Google service account file
 
 CMD ["python", "app.py"]
