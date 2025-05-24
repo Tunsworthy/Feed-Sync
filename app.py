@@ -24,13 +24,8 @@ with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as tmp:
 
 # Environment variables
 SHEET_NAME = os.getenv('SHEET_NAME')
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST'),
-    'port': int(os.getenv('DB_PORT')),
-    'dbname': os.getenv('DB_NAME'),
-    'user': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASSWORD')
-}
+DB_CONFIG = os.getenv('POSTGRES_URI')
+
 
 # Google Sheets auth
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -48,7 +43,7 @@ if not rows:
     exit()
 
 # Connect to Postgres
-conn = psycopg2.connect(**DB_CONFIG)
+conn = psycopg2.connect(DB_CONFIG)
 cursor = conn.cursor()
 
 # Get latest timestamp from DB

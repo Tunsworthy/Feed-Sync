@@ -1,0 +1,175 @@
+name: Build and Push Docker Image
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-push:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Log in to Docker Hub
+              uses: docker/login-action@v3.3.0
+              with:
+                registry: ghcr.io
+                username: ${{ github.actor}}
+                password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build and push Docker image
+              uses: docker/build-push-action@v5
+              with:
+                context: ./
+                file: ./Dockerfile
+                push: true
+                tags: ghcr.io/tunsworthy/feedsync:latest
+                platforms: linux/arm64/v8
+  Deploy:
+      needs: build-and-push
+      environment: Test
+      runs-on: [self-hosted,Production]
+      steps:
+        - name: Clone Repo or Update
+          run: |
+            cd ~/Docker-Compose
+            if [ -d "Feed-Sync/.git" ]; then
+              echo "Repository already exists. Pulling latest changes..."
+              cd Feed-Sync
+              git pull
+            else
+              echo "Cloning repository..."
+              git clone -n --depth=1 --filter=tree:0 \
+                https://github.com/Tunsworthy/Feed-Sync.git
+              cd Feed-Sync
+            fi
+        
+            git sparse-checkout set --no-cone /Feed-Sync
+            git checkout
+        - name : Setup env file
+          run: |
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+            # Check if .env exists and remove it
+            [ -f .env ] && rm .env
+
+            echo "githubuser=${{ github.actor}}" >> .env
+            echo "SHEET_NAME=${{ vars.MONGO_URI }}" >> .env
+            echo "POSTGRES_URI=${{ vars.POSTGRES_URI }}" >> .env 
+            echo "GOOGLE_CREDENTIALS=${{ vars.PORT }}" >> .env
+        
+        - name: Check and Update Only Changed Containers
+          run: |
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+        
+            # Define services and their images
+            SERVICES=(
+              "feedsync ghcr.io/tunsworthy/feedsync:latest"
+            )
+        
+            UPDATED_CONTAINERS=""
+        
+            for service in "${SERVICES[@]}"; do
+              SERVICE_NAME=$(echo "$service" | awk '{print $1}')
+              IMAGE_NAME=$(echo "$service" | awk '{print $2}')
+        
+              # Get local image ID
+              LOCAL_IMAGE=$(docker image inspect $IMAGE_NAME --format "{{.Id}}" 2>/dev/null || echo "none")
+        
+              # Pull latest image (but don't run it yet)
+              docker pull $IMAGE_NAME >/dev/null 2>&1
+        
+              # Get remote image ID after pulling
+              REMOTE_IMAGE=$(docker image inspect $IMAGE_NAME --format "{{.Id}}" 2>/dev/null || echo "none")
+        
+              # Compare local and remote image IDs
+              if [ "$LOCAL_IMAGE" != "$REMOTE_IMAGE" ]; then
+                UPDATED_CONTAINERS="$UPDATED_CONTAINERS $SERVICE_NAME"
+              fi
+            done
+
+        - name: Start Services with Docker Compose
+          run: |
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+            docker-compose up -d
+        
+  verify-containers:
+    needs: Deploy
+    runs-on: [self-hosted,Production]
+    steps:
+      - name: List Expected Services
+        id: expected
+        run: |
+          echo "Getting expected services from docker-compose.yml..."
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+          EXPECTED_CONTAINERS=$(docker-compose config --services| tr '\n' ' ')
+          # Exclude certain containers (certbot in this case)
+          EXCLUDED_CONTAINERS="certbot"
+          for exclude in $EXCLUDED_CONTAINERS; do
+            EXPECTED_CONTAINERS=$(echo "$EXPECTED_CONTAINERS" | sed "s/\b$exclude\b//g")
+          done
+          echo "EXPECTED_CONTAINERS=${EXPECTED_CONTAINERS}" >> $GITHUB_ENV
+      - name: List Running Services
+        id: running
+        run: |
+          echo "Getting currently running services..."
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+          RUNNING_CONTAINERS=$(docker-compose ps --services --filter "status=running"| tr '\n' ' ')
+          echo "RUNNING_CONTAINERS=${RUNNING_CONTAINERS}" >> $GITHUB_ENV
+      - name: Normalize Expected and Running Containers
+        run: |
+          EXPECTED_CONTAINERS=$(echo "$EXPECTED_CONTAINERS" | tr -s ' ' | tr ' ' '\n')
+          RUNNING_CONTAINERS=$(echo "$RUNNING_CONTAINERS" | tr -s ' ' | tr ' ' '\n')
+      
+          echo "Normalized EXPECTED_CONTAINERS:"
+          echo "$EXPECTED_CONTAINERS"
+      
+          echo "Normalized RUNNING_CONTAINERS:"
+          echo "$RUNNING_CONTAINERS"
+      
+          for container in $EXPECTED_CONTAINERS; do
+            if ! echo "$RUNNING_CONTAINERS" | grep -Fxq "$container"; then
+              echo "❌ Expected container $container is NOT running!"
+              exit 1
+            fi
+          done
+          echo "✅ All expected containers are running."
+
+      - name: Check Container Health Status
+        run: |
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+          for container in $RUNNING_CONTAINERS; do
+            CONTAINER_ID=$(docker-compose ps -q $container)
+            if [ -z "$CONTAINER_ID" ]; then
+              echo "⚠️ Could not find container ID for $container. Skipping..."
+              continue
+            fi
+
+            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || echo "no-healthcheck")
+
+            if [ "$HEALTH_STATUS" = "unhealthy" ]; then
+              echo "❌ Container $container is unhealthy!"
+              exit 1
+            elif [ "$HEALTH_STATUS" = "no-healthcheck" ]; then
+              echo "⚠️ Container $container does not have a health check. Skipping..."
+            else
+              echo "✅ Container $container is healthy."
+            fi
+          done
+
+      - name: Success Message
+        run: echo "✅ All expected containers are running and healthy!"
+          - echo "✅ All expected containers are running and healthy!"
+      - name: Ensure Clean Environment
+        run: |
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
+            if [ -f .env ]; then
+              rm .env
+              echo "Removed .env file."
+            fi
