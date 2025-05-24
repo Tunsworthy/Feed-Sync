@@ -10,7 +10,8 @@ services:
       - postgres
     networks:
       baby_org_net: null
-
+networks:
+  
   baby_org_net:
     name: baby_org_net
     internal: true
