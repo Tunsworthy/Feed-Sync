@@ -13,14 +13,9 @@ timestamp_format = "%d/%m/%Y %H:%M:%S"
 load_dotenv()  # Load env vars from .env
 
 # Write credentials.json from environment variable
-google_credentials_raw = os.getenv('GOOGLE_CREDENTIALS')
-if not google_credentials_raw:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable is missing.")
 
-# Create a secure temporary file
-with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as tmp:
-    tmp.write(google_credentials_raw)
-    CREDENTIALS_FILE = tmp.name
+with open("credentials.json") as f:
+    CREDENTIALS_FILE = f.read()
 
 # Environment variables
 SHEET_NAME = os.getenv('SHEET_NAME')
