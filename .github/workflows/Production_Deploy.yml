@@ -55,7 +55,7 @@ jobs:
             git checkout
         - name : Setup env file
           run: |
-            cd ~/Docker-Compose/Feed-Sync
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
             # Check if .env exists and remove it
             [ -f .env ] && rm .env
 
@@ -66,7 +66,7 @@ jobs:
         
         - name: Check and Update Only Changed Containers
           run: |
-            cd ~/Docker-Compose/Feed-Sync
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
         
             # Define services and their images
             SERVICES=(
@@ -96,7 +96,7 @@ jobs:
 
         - name: Start Services with Docker Compose
           run: |
-            cd ~/Docker-Compose/Feed-Sync
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
             docker-compose up -d
         
   verify-containers:
@@ -107,7 +107,7 @@ jobs:
         id: expected
         run: |
           echo "Getting expected services from docker-compose.yml..."
-          cd ~/Docker-Compose/Feed-Sync
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
           EXPECTED_CONTAINERS=$(docker-compose config --services| tr '\n' ' ')
           # Exclude certain containers (certbot in this case)
           EXCLUDED_CONTAINERS="certbot"
@@ -119,7 +119,7 @@ jobs:
         id: running
         run: |
           echo "Getting currently running services..."
-          cd ~/Docker-Compose/Feed-Sync
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
           RUNNING_CONTAINERS=$(docker-compose ps --services --filter "status=running"| tr '\n' ' ')
           echo "RUNNING_CONTAINERS=${RUNNING_CONTAINERS}" >> $GITHUB_ENV
       - name: Normalize Expected and Running Containers
@@ -143,7 +143,7 @@ jobs:
 
       - name: Check Container Health Status
         run: |
-          cd ~/Docker-Compose/Feed-Sync
+          cd ~/Docker-Compose/Feed-Sync/Feed-Sync
           for container in $RUNNING_CONTAINERS; do
             CONTAINER_ID=$(docker-compose ps -q $container)
             if [ -z "$CONTAINER_ID" ]; then
@@ -168,7 +168,7 @@ jobs:
           - echo "✅ All expected containers are running and healthy!"
       - name: Ensure Clean Environment
         run: |
-            cd ~/Docker-Compose/Feed-Sync
+            cd ~/Docker-Compose/Feed-Sync/Feed-Sync
             if [ -f .env ]; then
               rm .env
               echo "Removed .env file."
