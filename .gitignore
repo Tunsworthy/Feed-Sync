@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+
+# Environment variables
+.env
+*.json
+
+# Google service account credentials
+credentials.json
+
+# Docker artifacts
+*.tar
+*.img
+
+# VS Code settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Python egg info
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
