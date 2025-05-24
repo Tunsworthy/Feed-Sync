@@ -34,7 +34,7 @@ jobs:
                 platforms: linux/arm64/v8
   Deploy:
       needs: build-and-push
-      environment: Test
+      environment: Production
       runs-on: [self-hosted,Production]
       steps:
         - name: Clone Repo or Update
