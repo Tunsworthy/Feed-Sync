@@ -1,13 +1,11 @@
 version: '3.8'
 
 services:
-  backendapi:
+  feedsync:
     container_name: feedsync
     image:  ghcr.io/tunsworthy/feedsync:latest
     env_file:
       - .env
-    depends_on:
-      - postgres
     networks:
       baby_org_net: null
 networks:
