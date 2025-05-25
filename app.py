@@ -42,6 +42,7 @@ if not rows:
 # Connect to Postgres
 conn = psycopg2.connect(DB_CONFIG)
 cursor = conn.cursor()
+cursor.execute("SET datestyle = 'ISO, DMY';")
 
 # Get latest timestamp from DB
 cursor.execute("""
