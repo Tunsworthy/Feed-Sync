@@ -14,10 +14,18 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                filters: |
+                  app:
+                    - 'app.py'
             - name: Set up Docker Buildx
+              if: steps.filter.outputs.app == 'true'
               uses: docker/setup-buildx-action@v3
 
             - name: Log in to Docker Hub
+              if: steps.filter.outputs.app == 'true'
               uses: docker/login-action@v3.3.0
               with:
                 registry: ghcr.io
@@ -25,6 +33,7 @@ jobs:
                 password: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Build and push Docker image
+              if: steps.filter.outputs.app == 'true'
               uses: docker/build-push-action@v5
               with:
                 context: ./
@@ -63,7 +72,7 @@ jobs:
             echo "githubuser=${{ github.actor}}" >> .env
             echo "SHEET_NAME=${{ vars.SHEET_NAME }}" >> .env
             echo "POSTGRES_URI=${{ vars.POSTGRES_URI }}" >> .env 
-            echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+            echo "GOOGLE_CREDENTIALS=${{ secrets.GOOGLE_CREDENTIALS }}" >> .env 
         
         - name: Check and Update Only Changed Containers
           run: |
