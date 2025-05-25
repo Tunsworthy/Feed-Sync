@@ -49,7 +49,8 @@ cursor.execute("""
     FROM nappy_log
     WHERE timestamp = (SELECT Max(timestamp) FROM nappy_log);
 """)
-last_timestamp = cursor.fetchone()[0]
+result = cursor.fetchone()
+last_timestamp = result[0] if result and result[0] else None
 print(last_timestamp)
 
 # Convert last_timestamp from DB to datetime if it's not None and it's a string
