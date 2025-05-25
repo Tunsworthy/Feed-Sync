@@ -12,19 +12,21 @@ timestamp_format = "%d/%m/%Y %H:%M:%S"
 
 load_dotenv()  # Load env vars from .env
 
-# Write credentials.json from environment variable
-
-with open("credentials.json") as f:
-    CREDENTIALS_FILE = f.read()
-
 # Environment variables
 SHEET_NAME = os.getenv('SHEET_NAME')
 DB_CONFIG = os.getenv('POSTGRES_URI')
 
+# Load credentials from environment variable
+GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')
+if not GOOGLE_CREDENTIALS:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable is missing.")
+
+# Parse the JSON string to a dictionary
+credentials_dict = json.loads(GOOGLE_CREDENTIALS)
 
 # Google Sheets auth
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(credentials)
 
 
