@@ -42,7 +42,7 @@ if not rows:
 # Connect to Postgres
 conn = psycopg2.connect(DB_CONFIG)
 cursor = conn.cursor()
-cursor.execute("SET datestyle = 'ISO, DMY';")
+# cursor.execute("SET datestyle = 'ISO, DMY';")
 
 # Get latest timestamp from DB
 cursor.execute("""
@@ -76,7 +76,7 @@ for row in rows:
         new_rows.append(row)
 
 
-print(new_rows)
+# print(new_rows)
 
 if new_rows:
     latest = new_rows[-1]  # Insert only the most recent new row
