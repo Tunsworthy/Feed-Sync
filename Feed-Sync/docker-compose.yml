@@ -7,10 +7,12 @@ services:
     env_file:
       - .env
     networks:
-      baby_org_net: null
+     - baby_org_net
+     - bridge  
 networks:
   
   baby_org_net:
     name: baby_org_net
     internal: true
-
+  bridge:
+    external: true  # use Docker's default bridge network for internet
